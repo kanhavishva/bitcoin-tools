@@ -245,7 +245,11 @@ int main(int argc, char **argv) {
         fprintf(stderr,"Number of bits not defined\n");
         usage(argv[0]);
         exit(1);
-    } else if(CHECK_BITS<1 || CHECK_BITS>NUMPUBKEYS) {
+
+    } else if(USE_PUBLIC==1 && (CHECK_BITS<1 || CHECK_BITS>255)) {
+        fprintf(stderr,"Number of bits not valid\n");
+        exit(1);
+    } else if(USE_PUBLIC==0 && (CHECK_BITS<1 || CHECK_BITS>NUMPUBKEYS)) {
         fprintf(stderr,"Number of bits not valid\n");
         exit(1);
     }
