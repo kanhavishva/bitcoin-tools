@@ -9,9 +9,6 @@
 #include "include/secp256k1.h"
 #include "secp256k1.c"
 
-#define TIME
-//#define EXPONENT64
-
 #ifdef TIME
 #include <time.h>
 #endif
@@ -122,7 +119,7 @@ typedef struct hashtable_entry {
 
 hashtable_entry *table;
 
-secp256k1_ge pubkeys[NUMPUBKEYS];
+secp256k1_ge pubkey;
 
 #ifdef TIME
 time_t time1, time2;
@@ -135,6 +132,8 @@ secp256k1_ge ptgstep;
 
 secp256k1_ge P[256];
 
+unsigned char PUBLIC[33];
+unsigned int USE_PUBLIC = 0;
 uint64_t GSTEP, HASH_SIZE;
 unsigned int MEM_SIZE, CHECK_BITS, THREADS;
 int DEBUG = 0;
@@ -152,6 +151,20 @@ static void secp256k1_gej_copy(secp256k1_gej *r, secp256k1_gej *a) {
    r->z = a->z;
 }
 
+unsigned char* hex2bin(const char* hexstr) {
+    size_t bytesLen = (strlen(hexstr) / 2);
+    unsigned char* str = (unsigned char*) malloc(bytesLen);
+    const char* pos = hexstr;
+
+    for(int count = 0; count < bytesLen; count++) {
+        sscanf(pos, "%2hhx", &str[count]);
+        pos += 2;
+    }
+
+    return str;
+}
+
+#ifndef EXPONENT64
 void usage(unsigned char *name) {
     printf("Usage: %s -b [BITS] -m [BITS] [OPTION]...\n\n\
  -m BITS                     memory size\n\
@@ -160,19 +173,44 @@ void usage(unsigned char *name) {
     29 for 12GB\n\
     28 for  6GB\n\
  -b BITS                     bits\n\
+ -p HEX PUBLIC KEY           compressed public key\n\
  -t THREADS                  number of threads\n\
  -d                          debug\n\
  -h                          show this help\n", name);
     exit(1);
 }
-
-
+#else
+void usage(unsigned char *name) {
+    printf("Usage: %s -b [BITS] -m [BITS] [OPTION]...\n\n\
+ -m BITS                     memory size\n\
+    31 for 64GB\n\
+    30 for 32GB\n\
+    29 for 16GB\n\
+    28 for  8GB\n\
+ -b BITS                     bits\n\
+ -p HEX PUBLIC KEY           compressed public key\n\
+ -t THREADS                  number of threads\n\
+ -d                          debug\n\
+ -h                          show this help\n", name);
+    exit(1);
+}
+#endif
 
 int main(int argc, char **argv) {
 
     int c;
-    while ((c = getopt(argc, argv, "hdt:b:m:")) != -1) {
+    while ((c = getopt(argc, argv, "hdt:b:m:p:")) != -1) {
         switch (c) {
+
+            case 'p':
+                if(strlen(optarg)==66) {
+                   memcpy(PUBLIC, hex2bin(optarg), 33);
+                   USE_PUBLIC = 1;
+                   break;
+                } else {
+                    fprintf(stderr,"Public key len not valid\n");
+                    exit(1);
+                }
 
             case 'b':
                 CHECK_BITS = atoi(optarg);
@@ -243,8 +281,13 @@ int main(int argc, char **argv) {
 
     secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
-    for (int i = 0; i < NUMPUBKEYS; i++) {
-        secp256k1_eckey_pubkey_parse(&pubkeys[i], rawpubkeys[i], 33);
+    if(!USE_PUBLIC) {
+        memcpy(PUBLIC, rawpubkeys[CHECK_BITS - 1], 33);
+    }
+
+    if(!secp256k1_eckey_pubkey_parse(&pubkey, PUBLIC, 33)) {
+        fprintf(stderr,"Public key not valid\n");
+        exit(1);
     }
 
     if(DEBUG)
@@ -253,9 +296,8 @@ int main(int argc, char **argv) {
     printf("Threads: %d\n", THREADS);
     printf("Check bit = %d only, pubkey is:\n", CHECK_BITS);
     for(uint32_t i=0;i<33;i++)
-      printf("%02x",rawpubkeys[CHECK_BITS - 1][i]);
+      printf("%02x",PUBLIC[i]);
     printf("\n");
-
 
     int shift_gmax;
     shift_gmax = CHECK_BITS - MEM_SIZE*2 -1;
@@ -308,7 +350,7 @@ int main(int argc, char **argv) {
     #ifdef TIME
     time2 = time(NULL);
     sleep(1);
-    printf("\rCompleted in %d seconds                      \n", (time2 - time1));
+    printf("\rCompleted in %d seconds                      \n", (int)(time2 - time1));
     #else
     printf("\rCompleted                                    \n");
     #endif
@@ -384,7 +426,7 @@ void *memoryInit(void *arg) {
                 float tmpstatus = 0.0;
                 for(int j=0; j<THREADS; j++) tmpstatus += (float) status[j]*100/(end-start);
                 tmpstatus /= THREADS;
-                printf("\r %02.2f%% - %d seconds. Remaining %.0f seconds. ", tmpstatus, (time(0) - time1), ((time(0) - time1)*(float)(100-tmpstatus))/(float)(tmpstatus));
+                printf("\r %02.2f%% - %d seconds. Remaining %.0f seconds. ", tmpstatus, (int)(time(0) - time1), ((time(0) - time1)*(float)(100-tmpstatus))/(float)(tmpstatus));
                 fflush(stdout);
             }
         }
@@ -462,7 +504,7 @@ void *searchKeys(void *arg) {
                 float tmpstatus = 0.0;
                 for(int j=0; j<THREADS; j++) tmpstatus += (float) status[j]*100/(end-start);
                 tmpstatus /= THREADS;
-                printf("\r %02.2f%% - %d seconds. Remaining %.0f seconds. ", tmpstatus, (time(0) - time2), ((time(0) - time2)*(float)(100-tmpstatus))/(float)(tmpstatus));
+                printf("\r %02.2f%% - %d seconds. Remaining %.0f seconds. ", tmpstatus, (int)(time(0) - time2), ((time(0) - time2)*(float)(100-tmpstatus))/(float)(tmpstatus));
                 fflush(stdout);
             }
         }
@@ -484,7 +526,7 @@ void *searchKeys(void *arg) {
         secp256k1_fe x, zinv;
         secp256k1_fe_storage xst;
 
-        secp256k1_gej_add_ge_var(&diff, &pt2, &pubkeys[CHECK_BITS - 1], NULL);
+        secp256k1_gej_add_ge_var(&diff, &pt2, &pubkey, NULL);
         secp256k1_fe_inv_var(&zinv, &diff.z);
         secp256k1_fe_sqr(&zinv, &zinv);
         secp256k1_fe_mul(&x, &diff.x, &zinv);
@@ -505,12 +547,16 @@ void *searchKeys(void *arg) {
                 uint64_t key2hi = (key2 >> 64);
                 printf("\nFound private key in thread %d %2d: %048lx%016lx or %048lx%016lx\n", d, CHECK_BITS, key1hi, key1lo, key2hi, key2lo);
                 #ifdef TIME
-                printf("Found in %d seconds. Total: %d seconds\n", (time(0) - time2), (time(0) - time1));
+                printf("Found in %d seconds. Total: %d seconds\n", (int)(time(0) - time2), (int)(time(0) - time1));
                 #endif
 
                 FILE *fp = fopen("key.log","a+");
                 if (DEBUG)
+                    #ifndef EXPONENT64
                     fprintf(fp,"Found private, b=%02d i=%16lx, x 2 x %16lx, exp=%x\n", CHECK_BITS, (uint64_t)i, GSTEP, table[entry].exponent);
+                    #else
+                    fprintf(fp,"Found private, b=%02d i=%16lx, x 2 x %16lx, exp=%lx\n", CHECK_BITS, (uint64_t)i, GSTEP, table[entry].exponent);
+                    #endif
                 fprintf(fp,"Found private key %2d:\n%048lx%016lx\n%048lx%016lx\n", CHECK_BITS, key1hi, key1lo, key2hi, key2lo);
                 fclose(fp);
                 exit(0);
