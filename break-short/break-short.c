@@ -213,6 +213,36 @@ uint64_t *status;
 void *memoryInit(void *z);
 void *searchKeys(void *z);
 
+void time_format(uint64_t t) {
+    unsigned int n = 0;
+    unsigned char str[100];
+
+    if(t>(60*60*24*365)) {
+        n += sprintf(str+n, " %02luy", (uint64_t) t/(60*60*24*365));
+        t = t%(60*60*24*365);
+    }
+
+    if(t>(60*60*24*30)) {
+        n += sprintf(str+n, " %02lum", (uint64_t) t/(60*60*24*30));
+        t = t%(60*60*24*30);
+    }
+
+    if(t>(60*60*24)) {
+        n += sprintf(str+n, " %02lud", (uint64_t) t/(60*60*24));
+        t = t%(60*60*24);
+    }
+
+    n += sprintf(str+n, " %02lu", (uint64_t) t/(60*60));
+    t = t%(60*60);
+
+    n += sprintf(str+n, ":%02lu", (uint64_t) t/60);
+    t = t%60;
+
+    n += sprintf(str+n, ":%02lus", t);
+
+    printf("%s", str);
+}
+
 // Copy gej element
 static void secp256k1_gej_copy(secp256k1_gej *r, secp256k1_gej *a) {
    r->infinity = a->infinity;
@@ -424,9 +454,11 @@ int main(int argc, char **argv) {
     #ifdef TIME
     time2 = time(NULL);
     sleep(1);
-    printf("\rCompleted in %d seconds                      \n", (int)(time2 - time1));
+    printf("\33[2K\rCompleted");
+    time_format(time2 - time1);
+    printf("\n");
     #else
-    printf("\rCompleted                                    \n");
+    printf("\33[2K\rCompleted\n");
     #endif
 
     secp256k1_gej_neg(&pt, &pt);
@@ -500,7 +532,10 @@ void *memoryInit(void *arg) {
                 float tmpstatus = 0.0;
                 for(int j=0; j<THREADS; j++) tmpstatus += (float) status[j]*100/(end-start);
                 tmpstatus /= THREADS;
-                printf("\r %02.2f%% - %d seconds. Remaining %.0f seconds. ", tmpstatus, (int)(time(0) - time1), ((time(0) - time1)*(float)(100-tmpstatus))/(float)(tmpstatus));
+                printf("\33[2K\r %02.2f%% -", tmpstatus);
+                time_format((int)(time(0) - time1));
+                printf(" - Remaining");
+                time_format(((time(0) - time1)*(float)(100-tmpstatus))/(float)(tmpstatus));
                 fflush(stdout);
             }
         }
@@ -511,7 +546,7 @@ void *memoryInit(void *arg) {
                 float tmpstatus = 0;
                 for(int j=0; j<THREADS; j++) tmpstatus += (float) status[j]*100/(end-start);
                 tmpstatus /= THREADS;
-                printf("\r %02.2f%%", tmpstatus);
+                printf("\33[2K\r %02.2f%%", tmpstatus);
                 fflush(stdout);
             }
         }
@@ -578,7 +613,10 @@ void *searchKeys(void *arg) {
                 float tmpstatus = 0.0;
                 for(int j=0; j<THREADS; j++) tmpstatus += (float) status[j]*100/(end-start);
                 tmpstatus /= THREADS;
-                printf("\r %02.2f%% - %d seconds. Remaining %.0f seconds. ", tmpstatus, (int)(time(0) - time2), ((time(0) - time2)*(float)(100-tmpstatus))/(float)(tmpstatus));
+                printf("\33[2K\r %02.2f%% -", tmpstatus);
+                time_format((int)(time(0) - time2));
+                printf(" - Remaining");
+                time_format(((time(0) - time2)*(float)(100-tmpstatus))/(float)(tmpstatus));
                 fflush(stdout);
             }
         }
@@ -589,7 +627,7 @@ void *searchKeys(void *arg) {
                 float tmpstatus = 0;
                 for(int j=0; j<THREADS; j++) tmpstatus += (float) status[j]*100/(end-start);
                 tmpstatus /= THREADS;
-                printf("\r %02.2f%%", tmpstatus);
+                printf("\33[2K\r %02.2f%%", tmpstatus);
                 fflush(stdout);
             }
         }
