@@ -1,10 +1,7 @@
-/*
-  REGEX (K[wxyz]|L[0-5]|5[KHJ])[1-9A-HJ-NP-Za-km-z]{49,50}
-  g++ findprivate.cpp -I. -lcrypto -o findprivate
-*/
-
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <assert.h>
 #include <string.h>
@@ -15,7 +12,13 @@
 
 #include <base58.h>
 
+uint64_t nprv = 0;
 std::string prv = "";
+const char *PrvFileName;
+FILE *PrvFile;
+const char *PrvHexFileName;
+FILE *PrvHexFile;
+int DEBUG = 0;
 
 int checkB58() {
     unsigned char c;
@@ -36,7 +39,6 @@ int checkB58() {
         } else if (i==49) {
             break;
         } else {
-            //printf("BAD: %s\n", prv.c_str()); //DEBUG
             prv = "";
             return -1;
         }
@@ -46,60 +48,133 @@ int checkB58() {
     std::vector<unsigned char> vch;
 
     if(DecodeBase58Check(prv.c_str(), vch, prv.length())) {
-        printf("FOUND - %s - ", prv.c_str());
+        nprv++;
+        //printf("FOUND - %s - ", prv.c_str());
+        if(PrvFile) {
+            fprintf(PrvFile, "%s\n", prv.c_str());
+        }
 
         // Print private key in hex
-        for (int i=1;i<33;i++)
-          printf("%02hhx", vch[i]);
-        printf("\n");
+        if(PrvHexFile) {
+            for (int i=1;i<33;i++)
+              fprintf(PrvHexFile, "%02hhx", vch[i]);
+            fprintf(PrvHexFile, "\n");
+        }
+
 
     } else {
-        printf("FAILED CHECKSUM - %s\n", prv.c_str());
+        if(DEBUG)
+          printf("FAILED CHECKSUM - %s\n", prv.c_str());
     }
 
     prv = "";
-    fflush(stdout);
-
     return 0;
 }
 
-int main() {
-  int i, c;
+void usage(char *name) {
+    printf("Usage: %s -p [FILE] -h [FILE] [OPTION]...\n\n\
+ -p FILE                     base58 privates \n\
+ -x FILE                     hex privates\n\
+ -d                          show invalid checksum privates\n\
+ -h                          show this help\n", name);
+    exit(1);
+}
 
-  while ((c = getchar()) != EOF) {
-    if (c == 'K') {
-      prv += c;
-      c = getchar();
-      if (c=='w' || c=='x' || c=='y' || c=='z') {
-          prv += c;
-          checkB58();
+int main(int argc, char **argv) {
 
-      } else {
-        ungetc(c, stdin);
-        prv = "";
-      }
-    } else if (c == 'L') {
-      prv += c;
-      c = getchar();
-      if (c=='0' || c=='1' || c=='2' || c=='3' || c=='4' || c=='5') {
-          prv += c;
-          checkB58();
+    int i, c;
+    uint64_t st = 0;
 
-      } else {
-        ungetc(c, stdin);
-        prv = "";
-      }
-    } else if (c == '5') {
-      prv += c;
-      c = getchar();
-      if (c=='K' || c=='H' || c=='J') {
-          prv += c;
-          checkB58();
+    while ((c = getopt(argc, argv, "hdp:x:")) != -1) {
+        switch (c) {
 
-      } else {
-        ungetc(c, stdin);
-        prv = "";
-      }
+            case 'p':
+                PrvFileName = optarg;
+                break;
+
+            case 'x':
+                PrvHexFileName = optarg;
+                break;
+
+            case 'd':
+                DEBUG++;
+                break;
+
+            case 'h':
+                usage(argv[0]);
+                return 0;
+
+            default:
+                return 1;
+        }
     }
-  }
+
+
+    if(!PrvFileName && !PrvHexFileName) {
+        fprintf(stderr,"Output file not defined\n");
+        usage(argv[0]);
+        exit(1);
+    }
+
+    if(PrvFileName) {
+        PrvFile = fopen(PrvFileName, "a");
+        if(!PrvFile) {
+            fprintf(stderr,"Failed to open output private file\n");
+            exit(1);
+        }
+    }
+
+    if(PrvHexFileName) {
+        PrvHexFile = fopen(PrvHexFileName, "a");
+        if(!PrvHexFile) {
+            fprintf(stderr,"Failed to open output hex private file\n");
+            exit(1);
+        }
+    }
+
+    while ((c = getchar()) != EOF) {
+
+        if ((st % 10000000)==0 && st>0) {
+            printf("\33[2K\r %luM - Found %lu private keys", st/1000000, nprv);
+            fflush(stdout);
+        }
+        st++;
+
+        if (c=='K') {
+          prv += c;
+          c = getchar();
+          if (c=='w' || c=='x' || c=='y' || c=='z') {
+              prv += c;
+              checkB58();
+
+          } else {
+            ungetc(c, stdin);
+            prv = "";
+          }
+        } else if (c=='L') {
+          prv += c;
+          c = getchar();
+          if (c=='1' || c=='2' || c=='3' || c=='4' || c=='5') {
+              prv += c;
+              checkB58();
+
+          } else {
+            ungetc(c, stdin);
+            prv = "";
+          }
+        } else if (c=='5') {
+          prv += c;
+          c = getchar();
+          if (c=='K' || c=='H' || c=='J') {
+              prv += c;
+              checkB58();
+
+          } else {
+            ungetc(c, stdin);
+            prv = "";
+          }
+        }
+    }
+
+    printf("\33[2K\rCompleted. Found %lu private keys\n", nprv);
 }
