@@ -25,3 +25,9 @@ Here are some examples of how to use the tool
 cat * | findprivate -x priv-hex.txt
 brainflayer -v -b ${BRAINFILE}.blf -f ${BRAINFILE}.bin -t hexbinary -i priv-hex.txt
 ```
+
+
+
+Donations
+---------
+1PATATASCh385nEXwbPBjoJ95FAuQchPYB
