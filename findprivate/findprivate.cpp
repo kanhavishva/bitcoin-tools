@@ -18,7 +18,7 @@ const char *PrvFileName;
 FILE *PrvFile;
 const char *PrvHexFileName;
 FILE *PrvHexFile;
-int DEBUG = 0;
+int verbose = 0;
 
 int checkB58() {
     unsigned char c;
@@ -49,9 +49,10 @@ int checkB58() {
 
     if(DecodeBase58Check(prv.c_str(), vch, prv.length())) {
         nprv++;
-        //printf("FOUND - %s - ", prv.c_str());
+
         if(PrvFile) {
             fprintf(PrvFile, "%s\n", prv.c_str());
+            fflush(PrvFile);
         }
 
         // Print private key in hex
@@ -59,12 +60,20 @@ int checkB58() {
             for (int i=1;i<33;i++)
               fprintf(PrvHexFile, "%02hhx", vch[i]);
             fprintf(PrvHexFile, "\n");
+            fflush(PrvHexFile);
+        }
+
+        if(verbose>=1) {
+            printf("\33[2K\rFOUND - %s - ", prv.c_str());
+            for (int i=1;i<33;i++)
+              printf("%02hhx", vch[i]);
+            printf("\n");
         }
 
 
     } else {
-        if(DEBUG)
-          printf("FAILED CHECKSUM - %s\n", prv.c_str());
+        if(verbose>=2)
+          printf("\33[2K\rFAILED CHECKSUM - %s\n", prv.c_str());
     }
 
     prv = "";
@@ -73,10 +82,11 @@ int checkB58() {
 
 void usage(char *name) {
     printf("Usage: %s -p [FILE] -h [FILE] [OPTION]...\n\n\
- -p FILE                     base58 privates \n\
- -x FILE                     hex privates\n\
- -d                          show invalid checksum privates\n\
- -h                          show this help\n", name);
+ -p FILE             base58 privates \n\
+ -x FILE             hex privates\n\
+ -v                  verbose, show found private keys \n\
+ -vv                 show failed checksum\n\
+ -h                  show this help\n", name);
     exit(1);
 }
 
@@ -85,7 +95,7 @@ int main(int argc, char **argv) {
     int i, c;
     uint64_t st = 0;
 
-    while ((c = getopt(argc, argv, "hdp:x:")) != -1) {
+    while ((c = getopt(argc, argv, "hvp:x:")) != -1) {
         switch (c) {
 
             case 'p':
@@ -96,8 +106,8 @@ int main(int argc, char **argv) {
                 PrvHexFileName = optarg;
                 break;
 
-            case 'd':
-                DEBUG++;
+            case 'v':
+                verbose++;
                 break;
 
             case 'h':
