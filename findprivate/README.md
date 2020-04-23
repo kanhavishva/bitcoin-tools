@@ -22,6 +22,9 @@ Here are some examples of how to use the tool
 ### Search for private keys in disk
 `cat /dev/sdb | findprivate -p priv.txt`
 
+### Ignore errors reading disk
+`dd if=/dev/sdb bs=1M conv=noerror | findprivate -x priv-hex.txt`
+
 ### Search for private keys in files and check with brainflayer
 ```
 cat * | findprivate -x priv-hex.txt
