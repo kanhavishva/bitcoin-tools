@@ -14,9 +14,7 @@
 
 uint64_t nprv = 0;
 std::string prv = "";
-const char *PrvFileName;
 FILE *PrvFile;
-const char *PrvHexFileName;
 FILE *PrvHexFile;
 int verbose = 0;
 
@@ -27,14 +25,14 @@ int checkB58() {
         c = getchar();
 
         r = 0;
-        for(x=0; x<58; x++) {
+        for (x=0; x<58; x++) {
             if (c == pszBase58[x]) {
                 r = 1;
                 break;
             }
         }
 
-        if(r) {
+        if (r) {
             prv += c;
         } else if (i==49) {
             break;
@@ -42,37 +40,34 @@ int checkB58() {
             prv = "";
             return -1;
         }
-
     }
 
     std::vector<unsigned char> vch;
 
-    if(DecodeBase58Check(prv.c_str(), vch, prv.length())) {
+    if (DecodeBase58Check(prv.c_str(), vch, prv.length())) {
         nprv++;
 
-        if(PrvFile) {
+        if (PrvFile) {
             fprintf(PrvFile, "%s\n", prv.c_str());
             fflush(PrvFile);
         }
 
-        // Print private key in hex
-        if(PrvHexFile) {
+        if (PrvHexFile) {
             for (int i=1;i<33;i++)
               fprintf(PrvHexFile, "%02hhx", vch[i]);
             fprintf(PrvHexFile, "\n");
             fflush(PrvHexFile);
         }
 
-        if(verbose>=1) {
+        if (verbose>=1) {
             printf("\33[2K\rFOUND - %s - ", prv.c_str());
             for (int i=1;i<33;i++)
               printf("%02hhx", vch[i]);
             printf("\n");
         }
 
-
     } else {
-        if(verbose>=2)
+        if (verbose>=2)
           printf("\33[2K\rFAILED CHECKSUM - %s\n", prv.c_str());
     }
 
@@ -99,11 +94,19 @@ int main(int argc, char **argv) {
         switch (c) {
 
             case 'p':
-                PrvFileName = optarg;
+                PrvFile = fopen(optarg, "a");
+                if (!PrvFile) {
+                    fprintf(stderr, "Failed to open output private file\n");
+                    exit(1);
+                }
                 break;
 
             case 'x':
-                PrvHexFileName = optarg;
+                PrvHexFile = fopen(optarg, "a");
+                if (!PrvHexFile) {
+                    fprintf(stderr, "Failed to open output hex private file\n");
+                    exit(1);
+                }
                 break;
 
             case 'v':
@@ -120,26 +123,10 @@ int main(int argc, char **argv) {
     }
 
 
-    if(!PrvFileName && !PrvHexFileName) {
-        fprintf(stderr,"Output file not defined\n");
+    if (!PrvFile && !PrvHexFile) {
+        fprintf(stderr, "Output file not defined\n");
         usage(argv[0]);
         exit(1);
-    }
-
-    if(PrvFileName) {
-        PrvFile = fopen(PrvFileName, "a");
-        if(!PrvFile) {
-            fprintf(stderr,"Failed to open output private file\n");
-            exit(1);
-        }
-    }
-
-    if(PrvHexFileName) {
-        PrvHexFile = fopen(PrvHexFileName, "a");
-        if(!PrvHexFile) {
-            fprintf(stderr,"Failed to open output hex private file\n");
-            exit(1);
-        }
     }
 
     while ((c = getchar()) != EOF) {

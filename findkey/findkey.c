@@ -15,18 +15,23 @@ void usage(char *name) {
 
 int main(int argc, char **argv) {
 
-    int i, c, w;
+    int i, c;
     int quiet = 0;
     uint64_t st = 0;
     uint64_t nprv = 0;
-    const char *PrvHexFileName;
     FILE *PrvHexFile;
+    FILE *outstatus = stderr;
 
     while ((c = getopt(argc, argv, "hqx:")) != -1) {
         switch (c) {
 
             case 'x':
-                PrvHexFileName = optarg;
+                outstatus = stdout;
+                PrvHexFile = fopen(optarg, "a");
+                if (!PrvHexFile) {
+                    fprintf(stderr, "Failed to open output hex private file\n");
+                    exit(1);
+                }
                 break;
 
             case 'q':
@@ -39,17 +44,6 @@ int main(int argc, char **argv) {
 
             default:
                 return 1;
-        }
-    }
-
-    FILE* outstatus = stderr;
-
-    if (PrvHexFileName) {
-        outstatus = stdout;
-        PrvHexFile = fopen(PrvHexFileName, "a");
-        if (!PrvHexFile) {
-            fprintf(stderr, "Failed to open output hex private file\n");
-            exit(1);
         }
     }
 
