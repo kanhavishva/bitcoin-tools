@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
         }
         st++;
 
-        if (c=='K') {
+        if (c=='K') { // BITCOIN
           prv += c;
           c = getchar();
           if (c=='w' || c=='x' || c=='y' || c=='z') {
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
             ungetc(c, stdin);
             prv = "";
           }
-        } else if (c=='L') {
+        } else if (c=='L') { // BITCOIN
           prv += c;
           c = getchar();
           if (c=='1' || c=='2' || c=='3' || c=='4' || c=='5') {
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
             ungetc(c, stdin);
             prv = "";
           }
-        } else if (c=='5') {
+        } else if (c=='5') { // BITCOIN
           prv += c;
           c = getchar();
           if (c=='K' || c=='H' || c=='J') {
@@ -170,7 +170,32 @@ int main(int argc, char **argv) {
             ungetc(c, stdin);
             prv = "";
           }
+
+        } else if (c=='6') { // LITECOIN
+          prv += c;
+          c = getchar();
+          if (c=='u' || c=='v' || c=='w') {
+              prv += c;
+              checkB58();
+
+          } else {
+            ungetc(c, stdin);
+            prv = "";
+          }
+
+         } else if (c=='T') { // LITECOIN
+          prv += c;
+          c = getchar();
+          if (c=='3' || c=='4' || c=='5' || c=='6' || c=='7' || c=='8' || c=='9' || c=='A' || c=='B') {
+              prv += c;
+              checkB58();
+
+          } else {
+            ungetc(c, stdin);
+            prv = "";
+          }
         }
+
     }
 
     printf("\33[2K\rCompleted. Found %lu private keys\n", nprv);

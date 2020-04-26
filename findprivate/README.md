@@ -6,7 +6,9 @@ What is this tool?
 
 This tool helps you to find private keys in WIF format.
 
-The regex used is `(K[wxyz]|L[1-5]|5[KHJ])[1-9A-HJ-NP-Za-km-z]{49,50}`
+The regex used are:
+BITCOIN: `(K[wxyz]|L[1-5]|5[KHJ])[1-9A-HJ-NP-Za-km-z]{49,50}`
+LITECOIN: `(T[3456789AB]|6[uvw])[1-9A-HJ-NP-Za-km-z]{49,50}`
 
 
 Compiling
