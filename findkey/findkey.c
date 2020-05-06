@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     int quiet = 0;
     uint64_t st = 0;
     uint64_t nprv = 0;
-    FILE *PrvHexFile;
+    FILE *PrvHexFile = NULL;
     FILE *outstatus = stderr;
 
     while ((c = getopt(argc, argv, "hqx:")) != -1) {

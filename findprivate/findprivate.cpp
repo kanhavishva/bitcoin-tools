@@ -14,8 +14,8 @@
 
 uint64_t nprv = 0;
 std::string prv = "";
-FILE *PrvFile;
-FILE *PrvHexFile;
+FILE *PrvFile = NULL;
+FILE *PrvHexFile = NULL;
 int verbose = 0;
 
 int checkB58() {
